@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  // Only manage container image updates.
+  // Go modules and GitHub Actions are handled by Dependabot.
+  "enabledManagers": [
+    "custom.regex",
+    "dockerfile"
+  ],
+  "customManagers": [
+    {
+      // Extract container image references from Kubernetes YAML manifests
+      "customType": "regex",
+      "fileMatch": ["deploy/.+\\.yaml$"],
+      "matchStrings": [
+        "image:\\s*(?<depName>[^:]+):(?<currentValue>[^\\s\"]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      // Skip the staging image that tracks the main branch
+      "matchPackageNames": [
+        "gcr.io/k8s-staging-sig-storage/csi-snapshot-metadata"
+      ],
+      "enabled": false
+    },
+    {
+      // Group all deploy manifest image updates into a single PR
+      "matchManagers": ["custom.regex"],
+      "groupName": "deploy manifest container images",
+      "labels": [
+        "area/dependency",
+        "release-note-none",
+        "ok-to-test"
+      ]
+    },
+    {
+      // Dockerfile base images and tool versions
+      "matchManagers": ["dockerfile"],
+      "groupName": "Dockerfile dependencies",
+      "labels": [
+        "area/dependency",
+        "release-note-none",
+        "ok-to-test"
+      ]
+    }
+  ]
+}
